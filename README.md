@@ -5,10 +5,12 @@ Spring Cloud Config Server para gerenciamento centralizado de configurações.
 ## Tecnologias
 
 - Java 17
-- Spring Boot 3.2.2
+- Spring Boot 3.4.2
+- Spring Cloud 2024.0.0
 - Spring Cloud Config Server
 - Spring Boot Actuator
 - Maven
+- Docker
 
 ## Dependências Principais
 
@@ -21,45 +23,94 @@ O serviço está configurado para rodar na porta **8888** por padrão.
 
 ### Repositório de Configuração
 
-Por padrão, o Config Server está configurado para usar um repositório Git local em:
-```
-file://${user.home}/config-repo
-```
+O Config Server está configurado para usar o **profile native**, carregando os arquivos de configuração localmente de `classpath:/config/`.
 
-Para usar um repositório Git remoto, descomente e configure as propriedades no `application.yml`:
+#### Arquivos de Configuração Disponíveis
+
+Os seguintes arquivos de configuração estão disponíveis em `src/main/resources/config/`:
+
+- `api-gateway.yml` - Configurações do API Gateway
+- `application.yml` - Configurações compartilhadas
+- `check-health-service.yml` - Configurações do serviço de health check
+- `config-service.yml` - Configurações deste próprio serviço
+- `discovery-service.yml` - Configurações do Eureka Discovery Service
+
+### Integração com Eureka
+
+O serviço está configurado para se registrar no Eureka Discovery Service:
+
 ```yaml
-spring:
-  cloud:
-    config:
-      server:
-        git:
-          uri: https://github.com/your-org/config-repo
-          default-label: main
-          username: ${GIT_USERNAME}
-          password: ${GIT_PASSWORD}
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
 ```
 
 ## Como Executar
+
+### Com Maven
 
 ```bash
 mvn spring-boot:run
 ```
 
-Ou compile e execute o JAR:
+### Com JAR
+
 ```bash
 mvn clean package
 java -jar target/config-service-0.0.1-SNAPSHOT.jar
+```
+
+### Com Docker
+
+```bash
+docker build -t config-service .
+docker run -p 8888:8888 config-service
 ```
 
 ## Endpoints
 
 - Config Server: `http://localhost:8888/{application}/{profile}[/{label}]`
 - Health: `http://localhost:8888/actuator/health`
+- Info: `http://localhost:8888/actuator/info`
 - Metrics: `http://localhost:8888/actuator/metrics`
 
 ## Exemplo de Uso
 
-Para acessar configurações de uma aplicação chamada "my-service" no profile "dev":
+Para acessar configurações de uma aplicação específica:
+
 ```
-http://localhost:8888/my-service/dev
+# Configurações do API Gateway
+http://localhost:8888/api-gateway/default
+
+# Configurações do Discovery Service
+http://localhost:8888/discovery-service/default
+
+# Configurações do Check Health Service
+http://localhost:8888/check-health-service/default
+```
+
+## Estrutura do Projeto
+
+```
+config-service/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/fiap/tcc/configservice/
+│   │   │       └── ConfigServiceApplication.java
+│   │   └── resources/
+│   │       ├── application.yml
+│   │       ├── bootstrap.yml
+│   │       └── config/
+│   │           ├── api-gateway.yml
+│   │           ├── application.yml
+│   │           ├── check-health-service.yml
+│   │           ├── config-service.yml
+│   │           └── discovery-service.yml
+│   └── test/
+├── Dockerfile
+└── pom.xml
 ```

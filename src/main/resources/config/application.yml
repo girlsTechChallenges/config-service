@@ -1,10 +1,6 @@
 spring:
   cloud:
     config:
-      override-system-properties: false
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: info,health
+      server:
+        native:
+          search-locations: classpath:/config/
